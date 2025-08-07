@@ -475,12 +475,12 @@ async def init_db():
     async with get_new_db_connection() as conn:
         cursor = await conn.cursor()
 
-        if exists(sqlite_db_path):
-            if not await check_table_exists(code_drafts_table_name, cursor):
-                await create_code_drafts_table(cursor)
+        # if exists(sqlite_db_path):
+        #     if not await check_table_exists(code_drafts_table_name, cursor):
+        #         await create_code_drafts_table(cursor)
 
-            await conn.commit()
-            return
+        #     await conn.commit()
+        #     return
 
         try:
             await create_organizations_table(cursor)
