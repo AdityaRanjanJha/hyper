@@ -147,6 +147,21 @@ export const recognizeIntent = (transcript: string): VoiceIntent => {
       'stop', 'quit', 'exit', 'cancel', 'disable',
       'turn off', 'no thanks', 'not now'
     ],
+    read_page: [
+      'what does this page say', 'read this page', 'read the page',
+      'what does this screen say', 'read this screen', 'read the screen',
+      'describe this page', 'describe this screen', 'what\'s on this page',
+      'what\'s on this screen', 'read the instructions', 'read instructions',
+      'what does it say', 'tell me what it says', 'read this',
+      'read the content', 'what\'s the content', 'scan this page',
+      'analyze this page', 'extract the text', 'what text is here',
+      'explain this page', 'can you explain this page', 'explain this screen',
+      'tell me about this page', 'what is this page', 'what is on this page',
+      'describe what you see', 'what can you see', 'summary of this page',
+      'page summary', 'content summary', 'overview of this page',
+      'walk me through this page', 'guide me through this page',
+      'can you explain this page to me', 'explain this page to me'
+    ],
     unknown: []
   };
 
@@ -250,4 +265,239 @@ export const getVoiceFeatureSupport = () => {
     mediaRecorder: !!window.MediaRecorder,
     getUserMedia: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
   };
+};
+
+/**
+ * OCR and Page Content Extraction Functions
+ */
+
+/**
+ * Capture current page as image for OCR processing
+ */
+export const capturePageScreenshot = async (): Promise<string | null> => {
+  try {
+    // Check if we're in a browser environment with screen capture API
+    if (typeof window === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+      console.warn('Screen capture API not available');
+      return null;
+    }
+
+    // Request screen capture
+    const stream = await navigator.mediaDevices.getDisplayMedia({
+      video: true
+    });
+
+    // Create video element to capture frame
+    const video = document.createElement('video');
+    video.srcObject = stream;
+    video.play();
+
+    return new Promise((resolve) => {
+      video.onloadedmetadata = () => {
+        // Create canvas to capture frame
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(video, 0, 0);
+          
+          // Convert to base64
+          const dataURL = canvas.toDataURL('image/png');
+          
+          // Stop the stream
+          stream.getTracks().forEach(track => track.stop());
+          
+          resolve(dataURL);
+        } else {
+          stream.getTracks().forEach(track => track.stop());
+          resolve(null);
+        }
+      };
+    });
+  } catch (error) {
+    console.error('Error capturing screenshot:', error);
+    return null;
+  }
+};
+
+/**
+ * Extract text content from current page DOM
+ */
+export const extractPageTextContent = (): string => {
+  try {
+    // Get the main content area, fallback to body
+    const mainContent = document.querySelector('main') || 
+                       document.querySelector('[role="main"]') || 
+                       document.querySelector('.main-content') ||
+                       document.body;
+
+    if (!mainContent) {
+      return 'No content found on this page.';
+    }
+
+    // Clone the element to avoid modifying the original
+    const cloned = mainContent.cloneNode(true) as Element;
+    
+    // Remove script and style elements
+    const scriptsAndStyles = cloned.querySelectorAll('script, style, noscript');
+    scriptsAndStyles.forEach(el => el.remove());
+    
+    // Remove hidden elements
+    const hiddenElements = cloned.querySelectorAll('[style*="display: none"], [hidden], .hidden');
+    hiddenElements.forEach(el => el.remove());
+    
+    // Get text content and clean it up
+    let textContent = cloned.textContent || '';
+    
+    // Clean up whitespace and normalize
+    textContent = textContent
+      .replace(/\s+/g, ' ') // Replace multiple whitespace with single space
+      .replace(/\n\s*\n/g, '\n') // Remove empty lines
+      .trim();
+    
+    // Limit length to avoid overwhelming the assistant
+    if (textContent.length > 2000) {
+      textContent = textContent.substring(0, 2000) + '...';
+    }
+    
+    return textContent || 'No readable text found on this page.';
+  } catch (error) {
+    console.error('Error extracting page content:', error);
+    return 'Error reading page content.';
+  }
+};
+
+/**
+ * Extract structured page information
+ */
+export const extractPageStructure = (): {
+  title: string;
+  headings: string[];
+  forms: Array<{ action?: string; method?: string; fields: string[] }>;
+  links: string[];
+  buttons: string[];
+  images: Array<{ src?: string; alt?: string }>;
+} => {
+  try {
+    const structure = {
+      title: document.title || 'Untitled Page',
+      headings: [] as string[],
+      forms: [] as Array<{ action?: string; method?: string; fields: string[] }>,
+      links: [] as string[],
+      buttons: [] as string[],
+      images: [] as Array<{ src?: string; alt?: string }>
+    };
+
+    // Extract headings
+    const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    headings.forEach(heading => {
+      const text = heading.textContent?.trim();
+      if (text) structure.headings.push(text);
+    });
+
+    // Extract forms
+    const forms = document.querySelectorAll('form');
+    forms.forEach(form => {
+      const formInfo: { action?: string; method?: string; fields: string[] } = {
+        action: form.action || undefined,
+        method: form.method || undefined,
+        fields: []
+      };
+      
+      const inputs = form.querySelectorAll('input, textarea, select');
+      inputs.forEach(input => {
+        const label = input.getAttribute('placeholder') || 
+                     input.getAttribute('aria-label') || 
+                     input.getAttribute('name') || 
+                     input.getAttribute('id') || 
+                     'Unlabeled field';
+        formInfo.fields.push(label);
+      });
+      
+      structure.forms.push(formInfo);
+    });
+
+    // Extract visible links
+    const links = document.querySelectorAll('a[href]');
+    links.forEach(link => {
+      const text = link.textContent?.trim();
+      if (text && text.length < 100) { // Avoid very long link texts
+        structure.links.push(text);
+      }
+    });
+
+    // Extract buttons
+    const buttons = document.querySelectorAll('button, input[type="button"], input[type="submit"]');
+    buttons.forEach(button => {
+      const text = button.textContent?.trim() || 
+                  button.getAttribute('value') || 
+                  button.getAttribute('aria-label') || 
+                  'Button';
+      if (text) structure.buttons.push(text);
+    });
+
+    // Extract images with alt text
+    const images = document.querySelectorAll('img');
+    images.forEach(img => {
+      if (img.alt || img.src) {
+        structure.images.push({
+          src: img.src || undefined,
+          alt: img.alt || undefined
+        });
+      }
+    });
+
+    return structure;
+  } catch (error) {
+    console.error('Error extracting page structure:', error);
+    return {
+      title: 'Error',
+      headings: [],
+      forms: [],
+      links: [],
+      buttons: [],
+      images: []
+    };
+  }
+};
+
+/**
+ * Create a comprehensive page summary for voice assistant
+ */
+export const createPageSummary = (): string => {
+  try {
+    const structure = extractPageStructure();
+    const textContent = extractPageTextContent();
+    
+    let summary = `Page Title: ${structure.title}\n\n`;
+    
+    if (structure.headings.length > 0) {
+      summary += `Main Headings:\n${structure.headings.slice(0, 5).map(h => `- ${h}`).join('\n')}\n\n`;
+    }
+    
+    if (structure.forms.length > 0) {
+      summary += `Forms on this page:\n`;
+      structure.forms.forEach((form, index) => {
+        summary += `Form ${index + 1}: ${form.fields.slice(0, 3).join(', ')}${form.fields.length > 3 ? '...' : ''}\n`;
+      });
+      summary += '\n';
+    }
+    
+    if (structure.buttons.length > 0) {
+      summary += `Available buttons: ${structure.buttons.slice(0, 5).join(', ')}${structure.buttons.length > 5 ? '...' : ''}\n\n`;
+    }
+    
+    if (structure.links.length > 0) {
+      summary += `Available links: ${structure.links.slice(0, 3).join(', ')}${structure.links.length > 3 ? '...' : ''}\n\n`;
+    }
+    
+    summary += `Content Summary:\n${textContent.substring(0, 500)}${textContent.length > 500 ? '...' : ''}`;
+    
+    return summary;
+  } catch (error) {
+    console.error('Error creating page summary:', error);
+    return 'Unable to analyze page content.';
+  }
 };

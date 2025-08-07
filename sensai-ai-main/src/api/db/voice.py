@@ -234,6 +234,31 @@ def _fallback_intent_recognition(transcript: str, context: Dict[str, Any]) -> Di
             },
             "next_step": None
         }
+
+    elif any(phrase in transcript_lower for phrase in [
+        "what does this page say", "read this page", "read the page",
+        "what does this screen say", "read this screen", "read the screen",
+        "describe this page", "describe this screen", "what's on this page",
+        "what's on this screen", "read the instructions", "read instructions",
+        "what does it say", "tell me what it says", "read this",
+        "read the content", "what's the content", "scan this page",
+        "analyze this page", "extract the text", "what text is here",
+        "explain this page", "can you explain this page", "explain this screen",
+        "tell me about this page", "what is this page", "what is on this page",
+        "describe what you see", "what can you see", "summary of this page",
+        "page summary", "content summary", "overview of this page",
+        "walk me through this page", "guide me through this page",
+        "can you explain this page to me", "explain this page to me"
+    ]):
+        return {
+            "intent": "read_page",
+            "confidence": 0.9,
+            "action": {
+                "type": "speak",
+                "message": "I'll analyze the current page content for you. Let me extract and summarize what's visible on this screen."
+            },
+            "next_step": None
+        }
     
     elif any(word in transcript_lower for word in ["stop", "quit", "exit", "done"]):
         return {

@@ -22,6 +22,7 @@ import {
   VoiceIntentResponse,
   analyzePageContext
 } from '@/lib/voiceApi';
+import { createPageSummary } from '@/lib/voiceUtils';
 
 // TypeScript declarations for Web Speech API
 declare global {
@@ -102,6 +103,8 @@ export default function VoiceAgent() {
 
   // Handle voice input processing
   const handleVoiceInput = useCallback(async (transcript: string) => {
+    console.log('🎤 PROCESSING VOICE INPUT:', transcript);
+    
     try {
       const userId = session?.user?.id || 'anonymous';
       
@@ -111,7 +114,10 @@ export default function VoiceAgent() {
       
       // Check for control commands first
       const lowerTranscript = transcript.toLowerCase();
+      console.log('🔍 Lowercase transcript:', lowerTranscript);
+      
       if (['stop', 'quit', 'cancel'].some(cmd => lowerTranscript.includes(cmd))) {
+        console.log('🛑 Detected stop command');
         const response = await processVoiceCommand({
           userId,
           command: 'stop',
@@ -133,6 +139,65 @@ export default function VoiceAgent() {
         }
         
         setIsOpen(false);
+        return;
+      }
+
+      // Check for page reading requests
+      const readPageKeywords = [
+        'what does this page say', 'read this page', 'read the page',
+        'what does this screen say', 'read this screen', 'read the screen',
+        'describe this page', 'describe this screen', 'what\'s on this page',
+        'what\'s on this screen', 'read the instructions', 'read instructions',
+        'what does it say', 'tell me what it says', 'read this',
+        'read the content', 'what\'s the content', 'scan this page',
+        'analyze this page', 'extract the text', 'what text is here',
+        'explain this page', 'can you explain this page', 'explain this screen',
+        'tell me about this page', 'what is this page', 'what is on this page',
+        'describe what you see', 'what can you see', 'summary of this page',
+        'page summary', 'content summary', 'overview of this page',
+        'walk me through this page', 'guide me through this page',
+        'can you explain this page to me', 'explain this page to me'
+      ];
+
+      console.log('🔍 Checking for page reading request:', lowerTranscript);
+      console.log('🔍 Keywords to match:', readPageKeywords);
+      
+      const isPageReadingRequest = readPageKeywords.some(keyword => {
+        const matches = lowerTranscript.includes(keyword);
+        if (matches) {
+          console.log('✅ Matched keyword:', keyword);
+        }
+        return matches;
+      });
+
+      if (isPageReadingRequest) {
+        console.log('📖 Processing page reading request - EARLY RETURN!');
+        // Generate page summary using OCR/content extraction
+        const pageSummary = createPageSummary();
+        
+        const responseText = `Here's what I can see on this page: ${pageSummary}`;
+        
+        const agentMessage: ChatMessage = {
+          id: `agent-${Date.now()}`,
+          type: 'agent',
+          content: responseText,
+          timestamp: new Date(),
+          intent: 'read_page'
+        };
+        setMessages(prev => [...prev, agentMessage]);
+        
+        // Update memory with page context
+        setMemory(prev => ({
+          ...prev,
+          lastPageRead: window.location.pathname,
+          lastPageContent: pageSummary,
+          lastInteraction: new Date().toISOString()
+        }));
+        
+        if (!isMuted) {
+          speak(responseText);
+        }
+        
         return;
       }
       
@@ -714,7 +779,7 @@ export default function VoiceAgent() {
               
               <div className="text-center">
                 <p className="text-xs text-gray-600 dark:text-gray-300">
-                  Say: &quot;create account&quot;, &quot;join course&quot;, or &quot;submit task&quot;
+                  Say: &quot;create account&quot;, &quot;join course&quot;, &quot;submit task&quot;, or &quot;read this page&quot;
                 </p>
               </div>
             </div>

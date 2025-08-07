@@ -330,6 +330,7 @@ INSTRUCTIONS:
 5. Be proactive - suggest next logical steps based on context
 6. Handle ambiguous requests intelligently by inferring intent from context
 7. Provide UI element targeting when actions are needed
+8. When user asks to read page content, use the read_page intent to extract and summarize page information
 
 Respond conversationally and provide specific guidance for the current context."""
         
@@ -347,7 +348,7 @@ What should I do to help this user? Consider their current context and provide s
 
         assistant_format = """Return a JSON object with:
 {
-  "intent": one of [navigate, highlight, click, form_fill, help, confirm, stop, unknown],
+  "intent": one of [navigate, highlight, click, form_fill, help, confirm, stop, read_page, unknown],
   "slots": key-value pairs with relevant extracted information,
   "responseText": conversational response explaining what you'll do,
   "memory": updated memory with new context,

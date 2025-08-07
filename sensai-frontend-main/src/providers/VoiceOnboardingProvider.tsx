@@ -51,7 +51,8 @@ import {
   generateSessionUUID, 
   getStepInstructions, 
   highlightElement, 
-  removeAllHighlights 
+  removeAllHighlights,
+  createPageSummary 
 } from '@/lib/voiceUtils';
 import { createVoiceSession, processVoiceIntent } from '@/lib/api';
 
@@ -290,6 +291,7 @@ export const VoiceOnboardingProvider: React.FC<VoiceOnboardingProviderProps> = (
       // Recognize intent locally first
       const localIntent = recognizeIntent(transcript);
       console.log('🧠 Local intent recognized:', localIntent);
+      console.log('🔍 Full transcript for intent matching:', transcript.toLowerCase());
 
       // Handle common intents locally
       if (localIntent === 'help') {
@@ -313,6 +315,17 @@ export const VoiceOnboardingProvider: React.FC<VoiceOnboardingProviderProps> = (
       if (localIntent === 'stop') {
         console.log('🛑 Stopping onboarding via voice command');
         stopOnboarding();
+        return;
+      }
+
+      if (localIntent === 'read_page') {
+        console.log('📖 Reading page content - LOCAL PROCESSING');
+        const pageSummary = createPageSummary();
+        const message = `Here's what I can see on this page: ${pageSummary}`;
+        
+        dispatch({ type: 'SET_SPEAKING', payload: true });
+        await speak(message);
+        dispatch({ type: 'SET_SPEAKING', payload: false });
         return;
       }
 

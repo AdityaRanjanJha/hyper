@@ -492,6 +492,12 @@ export default function VoiceDemoPage() {
                   <code className="text-blue-600 dark:text-blue-400">&ldquo;I want to sign up&rdquo;</code>
                 </div>
                 <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                  <code className="text-blue-600 dark:text-blue-400">&ldquo;What does this page say?&rdquo;</code>
+                </div>
+                <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                  <code className="text-blue-600 dark:text-blue-400">&ldquo;Read this page&rdquo;</code>
+                </div>
+                <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded">
                   <code className="text-blue-600 dark:text-blue-400">&ldquo;Help&rdquo;</code>
                 </div>
                 <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded">
