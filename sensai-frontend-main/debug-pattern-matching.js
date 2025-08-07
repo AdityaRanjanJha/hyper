@@ -1,6 +1,6 @@
 // Debug pattern matching for voice commands
-const transcript = "can you explain this page to me";
-const lowerTranscript = transcript.toLowerCase();
+const transcript1 = "can you explain this page to me";
+const transcript2 = "now what should I click to add a module";
 
 const readPageKeywords = [
   'what does this page say', 'read this page', 'read the page',
@@ -18,28 +18,50 @@ const readPageKeywords = [
   'can you explain this page to me', 'explain this page to me'
 ];
 
-console.log('🔍 Testing transcript:', transcript);
-console.log('🔍 Lowercase:', lowerTranscript);
+const findElementKeywords = [
+  'what should i click', 'where should i click', 'what button should i click',
+  'how do i', 'where is the', 'find the', 'show me the', 'where can i',
+  'what should i click to', 'where should i click to', 'how can i',
+  'where do i click to', 'what do i click to', 'which button',
+  'which button should i click', 'where is the button', 'find button',
+  'show me button', 'highlight button', 'where to click',
+  'how to add', 'how to create', 'how to submit', 'how to join',
+  'where to add', 'where to create', 'where to submit', 'where to join'
+];
 
-const matches = [];
-readPageKeywords.forEach(keyword => {
-  if (lowerTranscript.includes(keyword)) {
-    matches.push(keyword);
+function testIntent(transcript, description) {
+  console.log(`\n🔍 Testing: "${transcript}" (${description})`);
+  const lowerTranscript = transcript.toLowerCase();
+  
+  const readPageMatch = readPageKeywords.some(keyword => lowerTranscript.includes(keyword));
+  const findElementMatch = findElementKeywords.some(keyword => lowerTranscript.includes(keyword));
+  
+  console.log(`📖 Read Page Match: ${readPageMatch}`);
+  console.log(`🔍 Find Element Match: ${findElementMatch}`);
+  
+  if (readPageMatch) {
+    console.log('✅ Should trigger: read_page intent');
+  } else if (findElementMatch) {
+    console.log('✅ Should trigger: find_element intent');
+  } else {
+    console.log('❌ Should trigger: unknown intent -> backend processing');
   }
-});
+}
 
-console.log('✅ Matched keywords:', matches);
-console.log('Should match:', matches.length > 0);
+testIntent(transcript1, 'page reading request');
+testIntent(transcript2, 'element finding request');
 
-// Test specific phrases
+// Test specific element finding patterns
+console.log('\n🧪 Testing element finding patterns:');
 const testPhrases = [
-  "can you explain this page to me",
-  "explain this page", 
-  "what does this page say",
-  "tell me about this page"
+  "what should I click to add a module",
+  "how do I add a module", 
+  "where is the add button",
+  "how to create a course",
+  "where should I click to submit"
 ];
 
 testPhrases.forEach(phrase => {
-  const hasMatch = readPageKeywords.some(keyword => phrase.toLowerCase().includes(keyword));
-  console.log(`"${phrase}" matches: ${hasMatch}`);
+  const hasMatch = findElementKeywords.some(keyword => phrase.toLowerCase().includes(keyword));
+  console.log(`"${phrase}" -> find_element: ${hasMatch}`);
 });

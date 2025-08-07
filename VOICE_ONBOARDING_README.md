@@ -12,6 +12,12 @@ The voice assistant has been enhanced with on-demand page content extraction usi
 - **Content Summarization**: Provides concise summaries of page content
 - **Accessibility Support**: Focuses on main content areas and ignores hidden elements
 
+### Intelligent Element Finding & Highlighting
+- **Smart Element Detection**: Finds relevant buttons/elements based on user intent
+- **Visual Highlighting**: Highlights found elements with animated overlays
+- **Action-based Matching**: Understands user goals (add, create, submit, etc.)
+- **Context-aware Scoring**: Scores elements based on text content and user intent
+
 ### Voice Commands for Page Reading
 Users can trigger page reading with phrases like:
 - "What does this page say?"
@@ -24,6 +30,17 @@ Users can trigger page reading with phrases like:
 - "Scan this page"
 - "Analyze this page"
 - "Extract the text"
+
+### Voice Commands for Element Finding
+Users can find and highlight specific elements with phrases like:
+- "What should I click to add a module?"
+- "How do I create a course?"
+- "Where is the submit button?"
+- "Show me the add button"
+- "Where should I click to join?"
+- "How to upload a file?"
+- "Find the save button"
+- "Which button should I click?"
 
 ### Integration Points
 
@@ -42,12 +59,22 @@ Users can trigger page reading with phrases like:
 - `extractPageTextContent()`: Extracts clean text from DOM
 - `extractPageStructure()`: Analyzes page structure (headings, forms, etc.)
 - `createPageSummary()`: Generates comprehensive page summary
+- `findAndHighlightElement()`: Intelligently finds and highlights UI elements
+- `highlightElement()`: Visual highlighting with animations and focus
 - `capturePageScreenshot()`: Optional screen capture functionality
 
 **Intent Recognition**:
-- New `read_page` intent type added to voice system
-- Pattern matching for various page reading requests
+- New `read_page` intent type for page content analysis
+- New `find_element` intent type for element detection and highlighting
+- Pattern matching for various page reading and element finding requests
 - Fallback handling when OpenAI is unavailable
+
+**Element Finding Algorithm**:
+- Action extraction (add, create, submit, etc.)
+- Noun extraction (module, course, assignment, etc.)
+- Smart scoring based on text content matching
+- Bonus scoring for perfect action + noun combinations
+- CSS selector generation for reliable element targeting
 
 ## Usage
 

@@ -22,7 +22,7 @@ import {
   VoiceIntentResponse,
   analyzePageContext
 } from '@/lib/voiceApi';
-import { createPageSummary } from '@/lib/voiceUtils';
+import { createPageSummary, findAndHighlightElement } from '@/lib/voiceUtils';
 
 // TypeScript declarations for Web Speech API
 declare global {
@@ -194,6 +194,62 @@ export default function VoiceAgent() {
           lastInteraction: new Date().toISOString()
         }));
         
+        if (!isMuted) {
+          speak(responseText);
+        }
+        
+        return;
+      }
+
+      // Check for element finding requests
+      const findElementKeywords = [
+        'what should i click', 'where should i click', 'what button should i click',
+        'how do i', 'where is the', 'find the', 'show me the', 'where can i',
+        'what should i click to', 'where should i click to', 'how can i',
+        'where do i click to', 'what do i click to', 'which button',
+        'which button should i click', 'where is the button', 'find button',
+        'show me button', 'highlight button', 'where to click',
+        'how to add', 'how to create', 'how to submit', 'how to join',
+        'where to add', 'where to create', 'where to submit', 'where to join'
+      ];
+
+      const isElementFindingRequest = findElementKeywords.some(keyword => {
+        const matches = lowerTranscript.includes(keyword);
+        if (matches) {
+          console.log('✅ Matched element finding keyword:', keyword);
+        }
+        return matches;
+      });
+
+      if (isElementFindingRequest) {
+        console.log('🔍 Processing element finding request - EARLY RETURN!');
+        
+        const result = findAndHighlightElement(transcript);
+        
+        let responseText = '';
+        if (result.found) {
+          responseText = `${result.description} I've highlighted it for you!`;
+        } else {
+          responseText = result.description;
+        }
+        
+        const agentMessage: ChatMessage = {
+          id: `agent-${Date.now()}`,
+          type: 'agent',
+          content: responseText,
+          timestamp: new Date(),
+          intent: 'find_element'
+        };
+        setMessages(prev => [...prev, agentMessage]);
+        
+        // Update memory with element finding context
+        setMemory(prev => ({
+          ...prev,
+          lastElementQuery: transcript,
+          lastElementFound: result.found,
+          lastInteraction: new Date().toISOString()
+        }));
+
         if (!isMuted) {
           speak(responseText);
         }
@@ -779,7 +835,7 @@ export default function VoiceAgent() {
               
               <div className="text-center">
                 <p className="text-xs text-gray-600 dark:text-gray-300">
-                  Say: &quot;create account&quot;, &quot;join course&quot;, &quot;submit task&quot;, or &quot;read this page&quot;
+                  Say: &quot;create account&quot;, &quot;join course&quot;, &quot;read this page&quot;, or &quot;what should I click to...&quot;
                 </p>
               </div>
             </div>

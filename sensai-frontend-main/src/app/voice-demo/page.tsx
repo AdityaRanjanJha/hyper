@@ -498,6 +498,15 @@ export default function VoiceDemoPage() {
                   <code className="text-blue-600 dark:text-blue-400">&ldquo;Read this page&rdquo;</code>
                 </div>
                 <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                  <code className="text-blue-600 dark:text-blue-400">&ldquo;What should I click to add a module?&rdquo;</code>
+                </div>
+                <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                  <code className="text-blue-600 dark:text-blue-400">&ldquo;How do I create a course?&rdquo;</code>
+                </div>
+                <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                  <code className="text-blue-600 dark:text-blue-400">&ldquo;Where is the submit button?&rdquo;</code>
+                </div>
+                <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded">
                   <code className="text-blue-600 dark:text-blue-400">&ldquo;Help&rdquo;</code>
                 </div>
                 <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded">

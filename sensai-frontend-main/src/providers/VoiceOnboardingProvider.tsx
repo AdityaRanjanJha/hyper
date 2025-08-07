@@ -50,9 +50,10 @@ import {
   recognizeIntent, 
   generateSessionUUID, 
   getStepInstructions, 
-  highlightElement, 
+  highlightElementBySelector, 
   removeAllHighlights,
-  createPageSummary 
+  createPageSummary,
+  findAndHighlightElement 
 } from '@/lib/voiceUtils';
 import { createVoiceSession, processVoiceIntent } from '@/lib/api';
 
@@ -225,7 +226,7 @@ export const VoiceOnboardingProvider: React.FC<VoiceOnboardingProviderProps> = (
           if (response.action.target) {
             console.log('🎯 Highlighting element:', response.action.target);
             removeAllHighlights();
-            highlightElement(response.action.target);
+            highlightElementBySelector(response.action.target);
           }
           break;
 
@@ -322,6 +323,23 @@ export const VoiceOnboardingProvider: React.FC<VoiceOnboardingProviderProps> = (
         console.log('📖 Reading page content - LOCAL PROCESSING');
         const pageSummary = createPageSummary();
         const message = `Here's what I can see on this page: ${pageSummary}`;
+        
+        dispatch({ type: 'SET_SPEAKING', payload: true });
+        await speak(message);
+        dispatch({ type: 'SET_SPEAKING', payload: false });
+        return;
+      }
+
+      if (localIntent === 'find_element') {
+        console.log('🔍 Finding element - LOCAL PROCESSING');
+        const result = findAndHighlightElement(transcript);
+        
+        let message = '';
+        if (result.found) {
+          message = `${result.description} I've highlighted it for you!`;
+        } else {
+          message = result.description;
+        }
         
         dispatch({ type: 'SET_SPEAKING', payload: true });
         await speak(message);

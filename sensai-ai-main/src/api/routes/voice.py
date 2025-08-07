@@ -331,6 +331,7 @@ INSTRUCTIONS:
 6. Handle ambiguous requests intelligently by inferring intent from context
 7. Provide UI element targeting when actions are needed
 8. When user asks to read page content, use the read_page intent to extract and summarize page information
+9. When user asks about what to click or how to do something, use find_element intent to identify and highlight relevant UI elements
 
 Respond conversationally and provide specific guidance for the current context."""
         
@@ -348,7 +349,7 @@ What should I do to help this user? Consider their current context and provide s
 
         assistant_format = """Return a JSON object with:
 {
-  "intent": one of [navigate, highlight, click, form_fill, help, confirm, stop, read_page, unknown],
+  "intent": one of [navigate, highlight, click, form_fill, help, confirm, stop, read_page, find_element, unknown],
   "slots": key-value pairs with relevant extracted information,
   "responseText": conversational response explaining what you'll do,
   "memory": updated memory with new context,

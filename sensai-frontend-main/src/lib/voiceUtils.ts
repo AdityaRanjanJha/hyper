@@ -65,9 +65,9 @@ export const getAvailableVoices = (): SpeechSynthesisVoice[] => {
 };
 
 /**
- * Highlight a DOM element by adding a CSS class
+ * Highlight a DOM element by adding a CSS class (legacy version)
  */
-export const highlightElement = (selector: string): void => {
+export const highlightElementBySelector = (selector: string): void => {
   try {
     const element = document.querySelector(selector);
     if (element) {
@@ -161,6 +161,16 @@ export const recognizeIntent = (transcript: string): VoiceIntent => {
       'page summary', 'content summary', 'overview of this page',
       'walk me through this page', 'guide me through this page',
       'can you explain this page to me', 'explain this page to me'
+    ],
+    find_element: [
+      'what should i click', 'where should i click', 'what button should i click',
+      'how do i', 'where is the', 'find the', 'show me the', 'where can i',
+      'what should i click to', 'where should i click to', 'how can i',
+      'where do i click to', 'what do i click to', 'which button',
+      'which button should i click', 'where is the button', 'find button',
+      'show me button', 'highlight button', 'where to click',
+      'how to add', 'how to create', 'how to submit', 'how to join',
+      'where to add', 'where to create', 'where to submit', 'where to join'
     ],
     unknown: []
   };
@@ -500,4 +510,191 @@ export const createPageSummary = (): string => {
     console.error('Error creating page summary:', error);
     return 'Unable to analyze page content.';
   }
+};
+
+/**
+ * Find and highlight relevant elements based on user query
+ */
+export const findAndHighlightElement = (query: string): { 
+  found: boolean; 
+  element?: HTMLElement; 
+  selector?: string; 
+  description: string 
+} => {
+  try {
+    const lowerQuery = query.toLowerCase();
+    console.log('🔍 Finding element for query:', lowerQuery);
+    
+    // Extract action/intent from query
+    let targetAction = '';
+    let targetNoun = '';
+    
+    // Action keywords
+    if (lowerQuery.includes('add')) targetAction = 'add';
+    else if (lowerQuery.includes('create')) targetAction = 'create';
+    else if (lowerQuery.includes('submit')) targetAction = 'submit';
+    else if (lowerQuery.includes('join')) targetAction = 'join';
+    else if (lowerQuery.includes('edit')) targetAction = 'edit';
+    else if (lowerQuery.includes('delete')) targetAction = 'delete';
+    else if (lowerQuery.includes('save')) targetAction = 'save';
+    else if (lowerQuery.includes('upload')) targetAction = 'upload';
+    
+    // Noun keywords
+    if (lowerQuery.includes('module')) targetNoun = 'module';
+    else if (lowerQuery.includes('course')) targetNoun = 'course';
+    else if (lowerQuery.includes('assignment')) targetNoun = 'assignment';
+    else if (lowerQuery.includes('task')) targetNoun = 'task';
+    else if (lowerQuery.includes('file')) targetNoun = 'file';
+    else if (lowerQuery.includes('video')) targetNoun = 'video';
+    else if (lowerQuery.includes('lesson')) targetNoun = 'lesson';
+    
+    console.log('🎯 Extracted intent:', { targetAction, targetNoun });
+    
+    // Search for relevant buttons/elements
+    const buttons = Array.from(document.querySelectorAll('button, a, [role="button"], input[type="submit"], input[type="button"]'));
+    
+    let bestMatch: HTMLElement | null = null;
+    let bestScore = 0;
+    let matchDescription = '';
+    
+    buttons.forEach((button) => {
+      const element = button as HTMLElement;
+      const text = (element.textContent || '').toLowerCase();
+      const ariaLabel = (element.getAttribute('aria-label') || '').toLowerCase();
+      const title = (element.getAttribute('title') || '').toLowerCase();
+      const allText = `${text} ${ariaLabel} ${title}`.trim();
+      
+      let score = 0;
+      
+      // Score based on action match
+      if (targetAction && allText.includes(targetAction)) score += 10;
+      if (targetNoun && allText.includes(targetNoun)) score += 10;
+      
+      // Score based on combination
+      if (targetAction && targetNoun && allText.includes(targetAction) && allText.includes(targetNoun)) {
+        score += 20; // Bonus for perfect match
+      }
+      
+      // Specific patterns for common actions
+      if (targetAction === 'add' && targetNoun === 'module') {
+        if (allText.includes('add module') || allText.includes('new module') || allText.includes('create module')) score += 25;
+        if (allText.includes('add') && allText.includes('content')) score += 15;
+        if (allText.includes('add') && (allText.includes('lesson') || allText.includes('chapter'))) score += 15;
+      }
+      
+      if (targetAction === 'create' && targetNoun === 'course') {
+        if (allText.includes('create course') || allText.includes('new course') || allText.includes('add course')) score += 25;
+      }
+      
+      // Generic action scoring
+      if (targetAction && allText.includes(targetAction)) score += 5;
+      if (allText.includes('add') || allText.includes('create') || allText.includes('new')) score += 3;
+      
+      // Boost for common UI patterns
+      if (allText.includes('+') || allText.includes('plus')) score += 5;
+      
+      console.log(`📝 Element "${text}" scored: ${score}`);
+      
+      if (score > bestScore && score > 0) {
+        bestScore = score;
+        bestMatch = element;
+        matchDescription = text || ariaLabel || title || 'Button';
+      }
+    });
+    
+    if (bestMatch && bestScore > 0) {
+      // Highlight the element
+      highlightElement(bestMatch);
+      
+      console.log('✅ Found and highlighted element:', bestMatch, 'Score:', bestScore);
+      
+      return {
+        found: true,
+        element: bestMatch,
+        selector: getBestSelector(bestMatch),
+        description: `Found "${matchDescription.trim()}" - this looks like what you're looking for!`
+      };
+    }
+    
+    return {
+      found: false,
+      description: `I couldn't find a specific button for "${targetAction} ${targetNoun}". You might need to look for a button with "Add", "Create", or "+" symbol.`
+    };
+    
+  } catch (error) {
+    console.error('Error finding element:', error);
+    return {
+      found: false,
+      description: 'Unable to analyze page elements.'
+    };
+  }
+};
+
+/**
+ * Enhanced highlight function that works with any element
+ */
+export const highlightElement = (element: HTMLElement): void => {
+  try {
+    // Remove existing highlights
+    document.querySelectorAll('.voice-highlight').forEach(el => {
+      el.classList.remove('voice-highlight', 'voice-pulse');
+    });
+    
+    // Add highlight classes
+    element.classList.add('voice-highlight', 'voice-pulse');
+    
+    // Scroll into view
+    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    // Focus if it's interactive
+    if (element.tagName === 'BUTTON' || element.tagName === 'A' || element.getAttribute('role') === 'button') {
+      setTimeout(() => {
+        element.focus();
+      }, 500);
+    }
+    
+    // Auto-remove highlight after 5 seconds
+    setTimeout(() => {
+      element.classList.remove('voice-highlight', 'voice-pulse');
+    }, 5000);
+    
+    console.log('🎯 Highlighted element:', element);
+  } catch (error) {
+    console.error('Error highlighting element:', error);
+  }
+};
+
+/**
+ * Get the best CSS selector for an element
+ */
+const getBestSelector = (element: HTMLElement): string => {
+  // Try ID first
+  if (element.id) {
+    return `#${element.id}`;
+  }
+  
+  // Try data attributes
+  const dataTestId = element.getAttribute('data-testid');
+  if (dataTestId) {
+    return `[data-testid="${dataTestId}"]`;
+  }
+  
+  // Try class-based selector
+  if (element.className) {
+    const classes = element.className.split(' ').filter(cls => 
+      cls && !cls.includes('voice-') && cls.length > 2
+    );
+    if (classes.length > 0) {
+      return `.${classes[0]}`;
+    }
+  }
+  
+  // Try tag + text content
+  const text = element.textContent?.trim();
+  if (text && text.length < 50) {
+    return `${element.tagName.toLowerCase()}:contains("${text}")`;
+  }
+  
+  // Fallback to tag name
+  return element.tagName.toLowerCase();
 };

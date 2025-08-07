@@ -260,6 +260,26 @@ def _fallback_intent_recognition(transcript: str, context: Dict[str, Any]) -> Di
             "next_step": None
         }
     
+    elif any(phrase in transcript_lower for phrase in [
+        "what should i click", "where should i click", "what button should i click",
+        "how do i", "where is the", "find the", "show me the", "where can i",
+        "what should i click to", "where should i click to", "how can i",
+        "where do i click to", "what do i click to", "which button",
+        "which button should i click", "where is the button", "find button",
+        "show me button", "highlight button", "where to click",
+        "how to add", "how to create", "how to submit", "how to join",
+        "where to add", "where to create", "where to submit", "where to join"
+    ]):
+        return {
+            "intent": "find_element",
+            "confidence": 0.9,
+            "action": {
+                "type": "speak",
+                "message": "Let me help you find the right button or element on this page. I'll analyze the available options and highlight what you're looking for."
+            },
+            "next_step": None
+        }
+    
     elif any(word in transcript_lower for word in ["stop", "quit", "exit", "done"]):
         return {
             "intent": "stop",

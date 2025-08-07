@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Element Finding</title>
+    <style>
+        .voice-highlight {
+            outline: 3px solid #3b82f6 !important;
+            background-color: rgba(59, 130, 246, 0.1) !important;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.6) !important;
+        }
+        
+        .voice-pulse {
+            animation: voice-pulse 1.5s ease-in-out infinite alternate !important;
+        }
+        
+        @keyframes voice-pulse {
+            from {
+                box-shadow: 0 0 20px rgba(59, 130, 246, 0.6) !important;
+            }
+            to {
+                box-shadow: 0 0 30px rgba(59, 130, 246, 0.8), 0 0 60px rgba(59, 130, 246, 0.6) !important;
+            }
+        }
+        
+        button {
+            margin: 10px;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background: #e5e7eb;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Page for Element Finding</h1>
+    
+    <button id="create-course-btn">Create Course</button>
+    <button id="add-module-btn">Add Module</button>
+    <button id="submit-assignment-btn">Submit Assignment</button>
+    <button id="join-course-btn">Join Course</button>
+    <button id="add-content-btn">+ Add Content</button>
+    <button id="new-lesson-btn">New Lesson</button>
+    
+    <script>
+        // Test the findAndHighlightElement function
+        function testElementFinding() {
+            const queries = [
+                "what should I click to add a module",
+                "how do I create a course", 
+                "where is the submit button",
+                "how to add content",
+                "find the join button"
+            ];
+            
+            queries.forEach((query, index) => {
+                setTimeout(() => {
+                    console.log(`Testing query: "${query}"`);
+                    // This would call our function in the real app
+                    // findAndHighlightElement(query);
+                }, index * 2000);
+            });
+        }
+        
+        // Run test when page loads
+        // testElementFinding();
+    </script>
+</body>
+</html>

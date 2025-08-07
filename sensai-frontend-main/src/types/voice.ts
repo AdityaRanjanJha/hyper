@@ -25,6 +25,7 @@ export type VoiceIntent =
   | 'repeat'
   | 'stop'
   | 'read_page'
+  | 'find_element'
   | 'unknown';
 
 export interface VoiceSession {
