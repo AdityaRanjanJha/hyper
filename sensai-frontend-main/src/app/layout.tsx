@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "@/providers/SessionProvider";
 import { VoiceOnboardingProvider } from "@/providers/VoiceOnboardingProvider";
+import VoiceAgent from "@/components/VoiceAgent";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,6 +36,7 @@ export default function RootLayout({
         <SessionProvider>
           <VoiceOnboardingProvider>
             {children}
+            <VoiceAgent />
           </VoiceOnboardingProvider>
         </SessionProvider>
       </body>

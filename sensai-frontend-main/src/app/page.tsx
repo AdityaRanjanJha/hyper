@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useCourses, useSchools } from "@/lib/api";
 import CourseCard from "@/components/CourseCard";
 import CreateCourseDialog from "@/components/CreateCourseDialog";
-import VoiceAgent from "@/components/VoiceAgent";
 
 export default function Home() {
   const router = useRouter();
@@ -205,9 +204,6 @@ export default function Home() {
         onSuccess={handleCourseCreationSuccess}
         schoolId={schoolId || undefined}
       />
-
-      {/* Voice Agent Component */}
-      <VoiceAgent />
     </>
   );
 }

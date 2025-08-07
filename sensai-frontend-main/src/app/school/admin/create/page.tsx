@@ -28,13 +28,16 @@ export default function CreateSchool() {
 
     // Check if user already has a school and redirect if they do
     useEffect(() => {
+        console.log("Current user:", user);
+        console.log("Schools data:", schools);
+        
         if (schools && schools.length > 0) {
             const ownedSchool = schools.find(school => school.role === 'owner');
             if (ownedSchool) {
                 router.push(`/school/admin/${ownedSchool.id}`);
             }
         }
-    }, [schools, router]);
+    }, [schools, router, user]);
 
     // Base URL for the school (would come from environment variables in a real app)
     const baseUrl = `${process.env.NEXT_PUBLIC_APP_URL}/school/`;
@@ -110,14 +113,23 @@ export default function CreateSchool() {
 
         if (!user?.id) {
             console.error("User not authenticated");
+            alert("Please log in to create a school.");
             return;
         }
 
+        console.log("Creating school with user ID:", user.id, "Type:", typeof user.id);
+        
         setIsSubmitting(true);
         // Clear any previous errors
         setSlugError(null);
 
         try {
+            // Ensure user_id is sent as an integer
+            const userId = parseInt(user.id);
+            if (isNaN(userId)) {
+                throw new Error("Invalid user ID format");
+            }
+
             // Create the school via API
             const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/organizations/`, {
                 method: 'POST',
@@ -127,7 +139,7 @@ export default function CreateSchool() {
                 body: JSON.stringify({
                     name: schoolName,
                     slug: slug,
-                    user_id: user.id
+                    user_id: userId
                 }),
             });
 
@@ -138,6 +150,10 @@ export default function CreateSchool() {
                     if (errorData.detail.includes('already exists')) {
                         setSlugError('This school URL is already taken. Please choose another.');
                         throw new Error('Slug already exists');
+                    } else if (errorData.detail.includes('not found')) {
+                        // User doesn't exist in backend database
+                        alert("Authentication error: Your account isn't properly set up. Please log out and log in again.");
+                        throw new Error('User not found in database');
                     } else {
                         throw new Error(errorData.detail);
                     }
