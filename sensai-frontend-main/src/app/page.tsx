@@ -180,26 +180,6 @@ export default function Home() {
                 )}
               </div>
 
-              {/* Quick Access - Integrity Timeline */}
-              <div className="mb-8">
-                <div className="bg-gradient-to-r from-purple-600 to-purple-800 rounded-lg p-6 hover:from-purple-700 hover:to-purple-900 transition-all cursor-pointer" 
-                     onClick={() => router.push('/integrity-timeline')}>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-xl font-semibold text-white mb-2">Integrity Timeline</h3>
-                      <p className="text-purple-100">Monitor and review academic integrity events</p>
-                    </div>
-                    <div className="text-white">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                        <path d="M3 3v5h5"></path>
-                        <path d="M12 7v5l4 2"></path>
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
               {/* Course grid */}
               {hasAnyCourses && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
