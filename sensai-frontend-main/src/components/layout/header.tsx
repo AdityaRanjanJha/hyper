@@ -240,6 +240,14 @@ export function Header({
                                 Try a demo
                             </button>
                         )}
+                        
+                        {/* Voice Demo Button */}
+                        <Link href="/voice-demo">
+                            <button className="hidden md:block px-6 py-3 bg-blue-600/80 text-white text-sm font-medium rounded-full hover:bg-blue-600 transition-colors cursor-pointer">
+                                Voice Demo
+                            </button>
+                        </Link>
+                        
                         {showCreateCourseButton && (
                             <button
                                 onClick={handleButtonClick}
