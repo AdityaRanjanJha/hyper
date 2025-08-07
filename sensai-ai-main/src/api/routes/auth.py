@@ -13,27 +13,37 @@ router = APIRouter()
 
 @router.post("/login")
 async def login_or_signup_user(user_data: UserLoginData) -> Dict:
+    # Debug logging
+    print(f"DEBUG: Login attempt for email: {user_data.email}")
+    print(f"DEBUG: Google Client ID configured: {bool(settings.google_client_id)}")
+    print(f"DEBUG: ID token provided: {bool(user_data.id_token)}")
+    
     # Verify the Google ID token
     try:
         # Get Google Client ID from environment variable
         if not settings.google_client_id:
+            print("ERROR: Google Client ID not configured")
             raise HTTPException(
                 status_code=500, detail="Google Client ID not configured"
             )
 
         # Verify the token with Google
+        print(f"DEBUG: Attempting to verify token with Google...")
         id_info = id_token.verify_oauth2_token(
             user_data.id_token, requests.Request(), settings.google_client_id
         )
+        print(f"DEBUG: Token verified successfully. Email from token: {id_info.get('email')}")
 
         # Check that the email in the token matches the provided email
         if id_info["email"] != user_data.email:
+            print(f"ERROR: Email mismatch. Token: {id_info['email']}, Provided: {user_data.email}")
             raise HTTPException(
                 status_code=401, detail="Email in token doesn't match provided email"
             )
 
     except ValueError as e:
         # Invalid token
+        print(f"ERROR: Token verification failed: {str(e)}")
         raise HTTPException(
             status_code=401, detail=f"Invalid authentication token: {str(e)}"
         )

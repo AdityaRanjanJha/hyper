@@ -6,8 +6,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
 import os
 from os.path import exists
-from api.config import UPLOAD_FOLDER_NAME
-from api.routes import (
+from .config import UPLOAD_FOLDER_NAME
+from .routes import (
     auth,
     code,
     cohort,
@@ -21,29 +21,41 @@ from api.routes import (
     file,
     ai,
     scorecard,
+    voice,
 )
-from api.routes.integrity import integrity_router
-from api.routes.ai import (
+# from .routes.integrity import integrity_router
+from .routes.ai import (
     resume_pending_task_generation_jobs,
     resume_pending_course_structure_generation_jobs,
 )
-from api.websockets import router as websocket_router
-from api.scheduler import scheduler
-from api.settings import settings
+from .websockets import router as websocket_router
+from .scheduler import scheduler
+from .settings import settings
+from .db import init_db
 import bugsnag
 from bugsnag.asgi import BugsnagMiddleware
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Initialize database first, before starting scheduler
+    await init_db()
+    
     scheduler.start()
 
     # Create the uploads directory if it doesn't exist
     os.makedirs(settings.local_upload_folder, exist_ok=True)
 
-    # Add recovery logic for interrupted tasks
-    asyncio.create_task(resume_pending_task_generation_jobs())
-    asyncio.create_task(resume_pending_course_structure_generation_jobs())
+    # Add recovery logic for interrupted tasks (with error handling)
+    try:
+        asyncio.create_task(resume_pending_task_generation_jobs())
+    except Exception as e:
+        print(f"Warning: Could not resume pending task generation jobs: {e}")
+    
+    try:
+        asyncio.create_task(resume_pending_course_structure_generation_jobs())
+    except Exception as e:
+        print(f"Warning: Could not resume pending course structure generation jobs: {e}")
 
     yield
     scheduler.shutdown()
@@ -117,8 +129,9 @@ app.include_router(milestone.router, prefix="/milestones", tags=["milestones"])
 app.include_router(scorecard.router, prefix="/scorecards", tags=["scorecards"])
 app.include_router(code.router, prefix="/code", tags=["code"])
 app.include_router(hva.router, prefix="/hva", tags=["hva"])
+app.include_router(voice.router, prefix="/voice", tags=["voice"])
 app.include_router(websocket_router, prefix="/ws", tags=["websockets"])
-app.include_router(integrity_router,prefix="/integrity", tags=["integrity"])
+# app.include_router(integrity_router,prefix="/integrity", tags=["integrity"])
 
 
 @app.get("/health")

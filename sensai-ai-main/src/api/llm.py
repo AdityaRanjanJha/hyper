@@ -2,6 +2,7 @@ from typing import Dict, List
 import backoff
 import openai
 import instructor
+import os
 
 from openai import OpenAI
 
@@ -11,6 +12,14 @@ from api.utils.logging import logger
 
 # Test log message
 logger.info("Logging system initialized")
+
+
+def get_openai_client() -> OpenAI:
+    """Get OpenAI client with API key from environment"""
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY environment variable is required")
+    return OpenAI(api_key=api_key)
 
 
 def is_reasoning_model(model: str) -> bool:

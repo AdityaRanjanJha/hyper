@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-
 import { useAuth } from "./auth";
 import { useCallback, useEffect, useState } from 'react';
 import { Task, Milestone } from "@/types";
@@ -315,4 +316,103 @@ export const addModule = async (courseId: string, schoolId: string, modules: Mod
       setModules([...modules, newModule]);
       setActiveModuleId(newModule.id);
   }
+};
+
+/**
+ * Voice Onboarding API Functions
+ */
+
+import { 
+  VoiceSession, 
+  IntentProcessingRequest, 
+  IntentProcessingResponse, 
+  VoiceAnalytics 
+} from '@/types/voice';
+
+/**
+ * Create a new voice session
+ */
+export const createVoiceSession = async (sessionData: Omit<VoiceSession, 'id' | 'created_at'>): Promise<VoiceSession> => {
+  console.log('🌐 API CALL - createVoiceSession:', {
+    timestamp: new Date().toISOString(),
+    url: `${process.env.NEXT_PUBLIC_BACKEND_URL}/voice/sessions`,
+    sessionData
+  });
+  
+  const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/voice/sessions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(sessionData),
+  });
+
+  console.log('🌐 API RESPONSE - createVoiceSession:', {
+    status: response.status,
+    statusText: response.statusText,
+    ok: response.ok
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('❌ createVoiceSession failed:', errorText);
+    throw new Error(`Failed to create voice session: ${response.status} - ${errorText}`);
+  }
+
+  const result = await response.json();
+  console.log('✅ createVoiceSession success:', result);
+  return result;
+};
+
+/**
+ * Process voice intent using backend AI
+ */
+export const processVoiceIntent = async (request: IntentProcessingRequest): Promise<IntentProcessingResponse> => {
+  console.log('🌐 API CALL - processVoiceIntent:', {
+    timestamp: new Date().toISOString(),
+    url: `${process.env.NEXT_PUBLIC_BACKEND_URL}/voice/intent`,
+    request
+  });
+  
+  const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/voice/intent`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  });
+
+  console.log('🌐 API RESPONSE - processVoiceIntent:', {
+    status: response.status,
+    statusText: response.statusText,
+    ok: response.ok
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('❌ processVoiceIntent failed:', errorText);
+    throw new Error(`Failed to process voice intent: ${response.status} - ${errorText}`);
+  }
+
+  const result = await response.json();
+  console.log('✅ processVoiceIntent success:', result);
+  return result;
+};
+
+/**
+ * Get voice onboarding analytics
+ */
+export const getVoiceAnalytics = async (): Promise<VoiceAnalytics> => {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/voice/analytics`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to get voice analytics: ${response.status}`);
+  }
+
+  return response.json();
 };

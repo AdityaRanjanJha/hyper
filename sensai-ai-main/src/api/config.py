@@ -1,6 +1,6 @@
 import os
 from os.path import exists
-from api.models import LeaderboardViewType, TaskInputType, TaskAIResponseType, TaskType
+from .models import LeaderboardViewType, TaskInputType, TaskAIResponseType, TaskType
 
 if exists("/appdata"):
     data_root_dir = "/appdata"
