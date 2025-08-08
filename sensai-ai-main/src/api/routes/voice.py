@@ -1047,4 +1047,8 @@ async def log_voice_interaction(interaction: VoiceInteractionLog):
             return {"status": "success", "message": "Interaction logged successfully"}
             
     except Exception as e:
+<<<<<<< HEAD
         raise HTTPException(status_code=500, detail=f"Error logging interaction: {str(e)}")
+=======
+        raise HTTPException(status_code=500, detail=f"Error logging interaction: {str(e)}")
+>>>>>>> c27159a08f5cccce18536a4fdbb2d01e350e9cde
