@@ -927,3 +927,124 @@ async def get_user_analytics(user_id: str):
             return {"user_id": user_id, "events": events}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving analytics: {str(e)}")
+
+@router.get("/history/{user_id}")
+async def get_chat_history(user_id: str):
+    """Get user's voice conversation history grouped by sessions"""
+    try:
+        async with get_new_db_connection() as conn:
+            cursor = await conn.cursor()
+            
+            # Get all interactions for the user, joined with session info
+            await cursor.execute("""
+                SELECT 
+                    vi.session_uuid,
+                    vi.user_message,
+                    vi.ai_response,
+                    vi.intent,
+                    vi.created_at,
+                    vs.created_at as session_start
+                FROM voice_interactions vi
+                LEFT JOIN voice_sessions vs ON vi.session_uuid = vs.session_uuid
+                WHERE vs.user_id = ? OR vi.session_uuid IN (
+                    SELECT session_uuid FROM voice_sessions WHERE user_id = ?
+                )
+                ORDER BY vi.created_at DESC
+                LIMIT 200
+            """, (user_id, user_id))
+            
+            results = await cursor.fetchall()
+            
+            # Group conversations by session
+            sessions = {}
+            for row in results:
+                session_uuid = row[0]
+                user_message = row[1]
+                ai_response = row[2]
+                intent = row[3]
+                timestamp = row[4]
+                session_start = row[5]
+                
+                if session_uuid not in sessions:
+                    sessions[session_uuid] = {
+                        "session_uuid": session_uuid,
+                        "session_date": session_start or timestamp,
+                        "conversations": []
+                    }
+                
+                # Only add if we have both user message and AI response
+                if user_message and ai_response:
+                    sessions[session_uuid]["conversations"].append({
+                        "id": f"{session_uuid}-{len(sessions[session_uuid]['conversations'])}",
+                        "session_uuid": session_uuid,
+                        "user_transcript": user_message,
+                        "agent_response": ai_response,
+                        "intent": intent or "unknown",
+                        "timestamp": timestamp
+                    })
+            
+            # Convert to list and sort by session date (newest first)
+            conversations = list(sessions.values())
+            conversations.sort(key=lambda x: x["session_date"], reverse=True)
+            
+            # Format session dates for display
+            for conv in conversations:
+                if conv["session_date"]:
+                    try:
+                        # Parse the date and format it nicely
+                        if isinstance(conv["session_date"], str):
+                            if 'T' in conv["session_date"]:
+                                date_obj = datetime.fromisoformat(conv["session_date"].replace('Z', '+00:00'))
+                            else:
+                                date_obj = datetime.strptime(conv["session_date"], "%Y-%m-%d %H:%M:%S")
+                            conv["session_date"] = date_obj.strftime("%B %d, %Y at %I:%M %p")
+                        else:
+                            conv["session_date"] = str(conv["session_date"])
+                    except Exception as e:
+                        # Fallback if parsing fails
+                        conv["session_date"] = f"Session {conv['session_uuid'][:8]}"
+                else:
+                    conv["session_date"] = f"Session {conv['session_uuid'][:8]}"
+                
+                # Reverse conversations within each session to show chronological order
+                conv["conversations"].reverse()
+            
+            return {
+                "user_id": user_id, 
+                "conversations": conversations,
+                "total_sessions": len(conversations),
+                "total_interactions": sum(len(c["conversations"]) for c in conversations)
+            }
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving chat history: {str(e)}")
+
+class VoiceInteractionLog(BaseModel):
+    session_uuid: str
+    user_message: str
+    ai_response: str
+    intent: str
+    action_taken: str = "{}"
+
+@router.post("/log-interaction")
+async def log_voice_interaction(interaction: VoiceInteractionLog):
+    """Manually log a voice interaction"""
+    try:
+        async with get_new_db_connection() as conn:
+            cursor = await conn.cursor()
+            await cursor.execute("""
+                INSERT INTO voice_interactions (session_uuid, user_message, ai_response, intent, action_taken)
+                VALUES (?, ?, ?, ?, ?)
+            """, (
+                interaction.session_uuid,
+                interaction.user_message,
+                interaction.ai_response,
+                interaction.intent,
+                interaction.action_taken
+            ))
+            await conn.commit()
+            
+            return {"status": "success", "message": "Interaction logged successfully"}
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error logging interaction: {str(e)}")
