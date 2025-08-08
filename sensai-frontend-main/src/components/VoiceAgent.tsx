@@ -115,10 +115,46 @@ export default function VoiceAgent() {
 
   // Log conversation to backend
   const logConversation = useCallback(async (userMessage: string, agentResponse: string, intent: string) => {
+<<<<<<< HEAD
+=======
     try {
       const userId = session?.user?.id || 'anonymous';
       console.log('📝 Logging conversation:', { userMessage, agentResponse, intent, userId });
       
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8002'}/voice/log-interaction`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          session_uuid: userId, // Using user_id as session for consistency
+          user_message: userMessage,
+          ai_response: agentResponse,
+          intent: intent,
+          action_taken: JSON.stringify({})
+        }),
+      });
+      
+      if (response.ok) {
+        console.log('✅ Conversation logged successfully');
+      } else {
+        console.error('❌ Failed to log conversation. Status:', response.status);
+      }
+    } catch (error) {
+      console.error('❌ Failed to log conversation:', error);
+    }
+  }, [session?.user?.id]);
+
+  // Handle voice input processing
+  const handleVoiceInput = useCallback(async (transcript: string) => {
+    console.log('🎤 PROCESSING VOICE INPUT:', transcript);
+    
+>>>>>>> c27159a08f5cccce18536a4fdbb2d01e350e9cde
+    try {
+      const userId = session?.user?.id || 'anonymous';
+      console.log('📝 Logging conversation:', { userMessage, agentResponse, intent, userId });
+      
+<<<<<<< HEAD
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/voice/log-interaction`, {
         method: 'POST',
         headers: {
@@ -137,6 +173,194 @@ export default function VoiceAgent() {
         console.log('✅ Conversation logged successfully');
       } else {
         console.error('❌ Failed to log conversation. Status:', response.status);
+=======
+      // Analyze current page context
+      const currentRoute = window.location.pathname;
+      const pageContext = analyzeCurrentPageContext();
+      
+      // Check for control commands first
+      const lowerTranscript = transcript.toLowerCase();
+      console.log('🔍 Lowercase transcript:', lowerTranscript);
+      
+      if (['stop', 'quit', 'cancel'].some(cmd => lowerTranscript.includes(cmd))) {
+        console.log('🛑 Detected stop command');
+        const response = await processVoiceCommand({
+          userId,
+          command: 'stop',
+          memory
+        });
+        
+        const agentMessage: ChatMessage = {
+          id: `agent-${Date.now()}`,
+          type: 'agent',
+          content: response.responseText,
+          timestamp: new Date(),
+          intent: 'stop'
+        };
+        setMessages(prev => [...prev, agentMessage]);
+        setMemory(response.memory);
+        
+        // Log conversation to backend
+        logConversation(transcript, response.responseText, 'stop');
+        
+        if (!isMuted) {
+          speak(response.responseText);
+        }
+        
+        setIsOpen(false);
+        return;
+      }
+
+      // Check for page reading requests
+      const readPageKeywords = [
+        'what does this page say', 'read this page', 'read the page',
+        'what does this screen say', 'read this screen', 'read the screen',
+        'describe this page', 'describe this screen', 'what\'s on this page',
+        'what\'s on this screen', 'read the instructions', 'read instructions',
+        'what does it say', 'tell me what it says', 'read this',
+        'read the content', 'what\'s the content', 'scan this page',
+        'analyze this page', 'extract the text', 'what text is here',
+        'explain this page', 'can you explain this page', 'explain this screen',
+        'tell me about this page', 'what is this page', 'what is on this page',
+        'describe what you see', 'what can you see', 'summary of this page',
+        'page summary', 'content summary', 'overview of this page',
+        'walk me through this page', 'guide me through this page',
+        'can you explain this page to me', 'explain this page to me'
+      ];
+
+      console.log('🔍 Checking for page reading request:', lowerTranscript);
+      console.log('🔍 Keywords to match:', readPageKeywords);
+      
+      const isPageReadingRequest = readPageKeywords.some(keyword => {
+        const matches = lowerTranscript.includes(keyword);
+        if (matches) {
+          console.log('✅ Matched keyword:', keyword);
+        }
+        return matches;
+      });
+
+      if (isPageReadingRequest) {
+        console.log('📖 Processing page reading request - EARLY RETURN!');
+        // Generate page summary using OCR/content extraction
+        const pageSummary = createPageSummary();
+        
+        const responseText = `Here's what I can see on this page: ${pageSummary}`;
+        
+        const agentMessage: ChatMessage = {
+          id: `agent-${Date.now()}`,
+          type: 'agent',
+          content: responseText,
+          timestamp: new Date(),
+          intent: 'read_page'
+        };
+        setMessages(prev => [...prev, agentMessage]);
+        
+        // Update memory with page context
+        setMemory(prev => ({
+          ...prev,
+          lastPageRead: window.location.pathname,
+          lastPageContent: pageSummary,
+          lastInteraction: new Date().toISOString()
+        }));
+
+        // Log conversation to backend
+        logConversation(transcript, responseText, 'read_page');
+        
+        if (!isMuted) {
+          speak(responseText);
+        }
+        
+        return;
+      }
+
+      // Check for element finding requests
+      const findElementKeywords = [
+        'what should i click', 'where should i click', 'what button should i click',
+        'how do i', 'where is the', 'find the', 'show me the', 'where can i',
+        'what should i click to', 'where should i click to', 'how can i',
+        'where do i click to', 'what do i click to', 'which button',
+        'which button should i click', 'where is the button', 'find button',
+        'show me button', 'highlight button', 'where to click',
+        'how to add', 'how to create', 'how to submit', 'how to join',
+        'where to add', 'where to create', 'where to submit', 'where to join'
+      ];
+
+      const isElementFindingRequest = findElementKeywords.some(keyword => {
+        const matches = lowerTranscript.includes(keyword);
+        if (matches) {
+          console.log('✅ Matched element finding keyword:', keyword);
+        }
+        return matches;
+      });
+
+      if (isElementFindingRequest) {
+        console.log('🔍 Processing element finding request - EARLY RETURN!');
+        
+        const result = findAndHighlightElement(transcript);
+        
+        let responseText = '';
+        if (result.found) {
+          responseText = `${result.description} I've highlighted it for you!`;
+        } else {
+          responseText = result.description;
+        }
+        
+        const agentMessage: ChatMessage = {
+          id: `agent-${Date.now()}`,
+          type: 'agent',
+          content: responseText,
+          timestamp: new Date(),
+          intent: 'find_element'
+        };
+        setMessages(prev => [...prev, agentMessage]);
+        
+        // Update memory with element finding context
+        setMemory(prev => ({
+          ...prev,
+          lastElementQuery: transcript,
+          lastElementFound: result.found,
+          lastInteraction: new Date().toISOString()
+        }));
+
+        // Log conversation to backend
+        logConversation(transcript, responseText, 'find_element');
+
+        if (!isMuted) {
+          speak(responseText);
+        }
+        
+        return;
+      }
+      
+      // Process regular voice intent with full context
+      const response = await processVoiceIntent({
+        userId,
+        utterance: transcript,
+        memory,
+        currentRoute,
+        pageContext
+      });
+      
+      // Add agent response to chat
+      const agentMessage: ChatMessage = {
+        id: `agent-${Date.now()}`,
+        type: 'agent',
+        content: response.responseText,
+        timestamp: new Date(),
+        intent: response.intent
+      };
+      setMessages(prev => [...prev, agentMessage]);
+      
+      // Update memory
+      setMemory(response.memory);
+      
+      // Log conversation to backend
+      logConversation(transcript, response.responseText, response.intent);
+      
+      // Execute action if provided
+      if (response.action) {
+        await executeVoiceAction(response);
+>>>>>>> c27159a08f5cccce18536a4fdbb2d01e350e9cde
       }
     } catch (error) {
       console.error('❌ Failed to log conversation:', error);
