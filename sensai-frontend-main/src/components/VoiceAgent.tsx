@@ -101,6 +101,36 @@ export default function VoiceAgent() {
   // Speech Synthesis
   const speechSynthesisRef = useRef<SpeechSynthesisUtterance | null>(null);
 
+  // Log conversation to backend
+  const logConversation = useCallback(async (userMessage: string, agentResponse: string, intent: string) => {
+    try {
+      const userId = session?.user?.id || 'anonymous';
+      console.log('📝 Logging conversation:', { userMessage, agentResponse, intent, userId });
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8002'}/voice/log-interaction`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          session_uuid: userId, // Using user_id as session for consistency
+          user_message: userMessage,
+          ai_response: agentResponse,
+          intent: intent,
+          action_taken: JSON.stringify({})
+        }),
+      });
+      
+      if (response.ok) {
+        console.log('✅ Conversation logged successfully');
+      } else {
+        console.error('❌ Failed to log conversation. Status:', response.status);
+      }
+    } catch (error) {
+      console.error('❌ Failed to log conversation:', error);
+    }
+  }, [session?.user?.id]);
+
   // Handle voice input processing
   const handleVoiceInput = useCallback(async (transcript: string) => {
     console.log('🎤 PROCESSING VOICE INPUT:', transcript);
@@ -133,6 +163,9 @@ export default function VoiceAgent() {
         };
         setMessages(prev => [...prev, agentMessage]);
         setMemory(response.memory);
+        
+        // Log conversation to backend
+        logConversation(transcript, response.responseText, 'stop');
         
         if (!isMuted) {
           speak(response.responseText);
@@ -193,6 +226,9 @@ export default function VoiceAgent() {
           lastPageContent: pageSummary,
           lastInteraction: new Date().toISOString()
         }));
+
+        // Log conversation to backend
+        logConversation(transcript, responseText, 'read_page');
         
         if (!isMuted) {
           speak(responseText);
@@ -250,6 +286,9 @@ export default function VoiceAgent() {
           lastInteraction: new Date().toISOString()
         }));
 
+        // Log conversation to backend
+        logConversation(transcript, responseText, 'find_element');
+
         if (!isMuted) {
           speak(responseText);
         }
@@ -278,6 +317,9 @@ export default function VoiceAgent() {
       
       // Update memory
       setMemory(response.memory);
+      
+      // Log conversation to backend
+      logConversation(transcript, response.responseText, response.intent);
       
       // Execute action if provided
       if (response.action) {
