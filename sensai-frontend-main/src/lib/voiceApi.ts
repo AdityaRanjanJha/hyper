@@ -83,6 +83,135 @@ export interface AnalyticsHistoryEvent {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
+// Enhanced voice processing with OpenAI fallback
+export async function processVoiceIntentWithOpenAI(request: VoiceIntentRequest): Promise<VoiceIntentResponse> {
+  try {
+    // Try the original voice intent API first
+    const response = await fetch(`${API_BASE}/voice/intent`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (response.ok) {
+      return response.json();
+    } else {
+      throw new Error(`Voice intent API error: ${response.status}`);
+    }
+  } catch (error) {
+    console.log('Voice intent API failed, trying OpenAI fallback:', error);
+    
+    // Fallback to OpenAI-powered intelligent response
+    try {
+      const intelligentResponse = await fetch(`${API_BASE}/intelligent-voice/intelligent-voice`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: request.utterance,
+          page_content: {
+            url: request.currentRoute || window.location.pathname,
+            title: document.title,
+            text_content: document.body.innerText.slice(0, 1000), // First 1000 chars
+            elements: request.pageContext?.availableElements || [],
+            context: request.pageContext
+          },
+          conversation_history: []
+        }),
+      });
+
+      if (intelligentResponse.ok) {
+        const aiData = await intelligentResponse.json();
+        
+        // Convert OpenAI response to VoiceIntentResponse format
+        return {
+          intent: 'intelligent_response',
+          slots: {},
+          responseText: aiData.response || "I understand what you're asking. Let me help you with that.",
+          memory: request.memory,
+          requiresConfirmation: false,
+          action: aiData.actions && aiData.actions.length > 0 ? {
+            type: aiData.actions[0].type,
+            target: aiData.actions[0].target,
+            message: aiData.actions[0].message
+          } : undefined
+        };
+      } else {
+        throw new Error('OpenAI API also failed');
+      }
+    } catch (openaiError) {
+      console.log('OpenAI API also failed:', openaiError);
+      
+      // Final fallback with context-aware response
+      const contextualResponse = generateContextualFallback(request);
+      return contextualResponse;
+    }
+  }
+}
+
+// Generate intelligent fallback responses based on context
+function generateContextualFallback(request: VoiceIntentRequest): VoiceIntentResponse {
+  const utterance = request.utterance.toLowerCase();
+  const route = request.currentRoute || '';
+  
+  let responseText = "I'm here to help! ";
+  let intent = 'general_help';
+  let action: VoiceAction | undefined = undefined;
+  
+  // Context-aware responses
+  if (route.includes('/login')) {
+    if (utterance.includes('account') || utterance.includes('sign') || utterance.includes('create')) {
+      responseText = "To create an account, click the 'Sign in with Google' button. This will set up your account quickly and securely.";
+      intent = 'account_creation';
+      action = {
+        type: 'highlight',
+        target: '#google-signin-button',
+        message: 'Highlighting the Google sign-in button'
+      };
+    } else {
+      responseText = "You're on the login page. You can create an account using the Google sign-in button, or let me know what specific help you need.";
+    }
+  } else if (route.includes('/dashboard') || route === '/') {
+    if (utterance.includes('course')) {
+      responseText = "I can help you with courses! You can create a new course, view your existing courses, or enroll in new ones. What would you like to do?";
+      intent = 'course_help';
+    } else if (utterance.includes('create')) {
+      responseText = "You can create a new course by clicking the 'Create Course' button. I can guide you through the process!";
+      intent = 'create_course';
+    } else {
+      responseText = "Welcome to your dashboard! You can create courses, manage your learning, and explore available courses. What would you like to do?";
+    }
+  } else {
+    // General responses based on keywords
+    if (utterance.includes('help')) {
+      responseText = "I'm your SensAI voice assistant! I can help you navigate the platform, create accounts, manage courses, and answer questions. What do you need help with?";
+    } else if (utterance.includes('course')) {
+      responseText = "I can help you with course-related tasks. You can create courses, enroll in courses, or manage your learning progress.";
+    } else if (utterance.includes('account') || utterance.includes('sign')) {
+      responseText = "To create an account or sign in, I can take you to the login page where you can use Google authentication.";
+      action = {
+        type: 'navigate',
+        target: '/login',
+        message: 'Taking you to the login page'
+      };
+    } else {
+      responseText = "I understand you want help with the platform. I can assist with creating accounts, managing courses, and navigating the interface. Could you be more specific about what you'd like to do?";
+    }
+  }
+  
+  return {
+    intent,
+    slots: {},
+    responseText,
+    memory: request.memory,
+    requiresConfirmation: false,
+    action
+  };
+}
+
 export async function processVoiceIntent(request: VoiceIntentRequest): Promise<VoiceIntentResponse> {
   const response = await fetch(`${API_BASE}/voice/intent`, {
     method: 'POST',
@@ -170,6 +299,14 @@ export function analyzePageContext(route: string): {
   availableElements: string[];
 } {
   const elements: string[] = [];
+  
+  // Add route-based context
+  if (route.includes('/login')) {
+    elements.push("google_signin_btn");
+  }
+  if (route.includes('/dashboard') || route === '/') {
+    elements.push("dashboard_elements");
+  }
   
   // Detect available elements on the page
   if (document.querySelector("button:contains('Create course')")) {

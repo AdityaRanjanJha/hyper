@@ -525,6 +525,110 @@ export const findAndHighlightElement = (query: string): {
     const lowerQuery = query.toLowerCase();
     console.log('🔍 Finding element for query:', lowerQuery);
     
+    // Check for course browsing requests first
+    const courseBrowsingKeywords = [
+      'browse courses', 'find courses', 'see courses', 'view courses',
+      'course catalog', 'available courses', 'all courses', 'courses',
+      'explore courses', 'course list'
+    ];
+    
+    const isCourseRequest = courseBrowsingKeywords.some(keyword => 
+      lowerQuery.includes(keyword)
+    );
+    
+    if (isCourseRequest) {
+      console.log('🎓 Detected course browsing request');
+      
+      // Look for the specific course card styling you mentioned
+      // Try multiple approaches to find the styled course elements
+      let courseElement: HTMLElement | null = null;
+      
+      // Strategy 1: Look for elements with the exact background color
+      const backgroundElements = document.querySelectorAll('[style*="#1A1A1A"], [class*="bg-[#1A1A1A]"]');
+      if (backgroundElements.length > 0) {
+        courseElement = backgroundElements[0] as HTMLElement;
+        console.log('✅ Found element with background #1A1A1A');
+      }
+      
+      // Strategy 2: Look for elements with indigo border
+      if (!courseElement) {
+        const borderElements = document.querySelectorAll('[class*="border-indigo-500"], [class*="border-indigo"]');
+        if (borderElements.length > 0) {
+          courseElement = borderElements[0] as HTMLElement;
+          console.log('✅ Found element with indigo border');
+        }
+      }
+      
+      // Strategy 3: Look for course-related cards or containers
+      if (!courseElement) {
+        const courseSelectors = [
+          '[class*="course"]',
+          '[data-testid*="course"]',
+          '.text-gray-300',
+          '[class*="rounded-lg"]',
+          '[class*="bg-gray-"], [class*="bg-slate-"]'
+        ];
+        
+        for (const selector of courseSelectors) {
+          const elements = document.querySelectorAll(selector);
+          for (const element of elements) {
+            const text = element.textContent?.toLowerCase() || '';
+            if (text.includes('course') || text.includes('browse') || text.includes('learn') || text.includes('explore')) {
+              courseElement = element as HTMLElement;
+              console.log(`✅ Found course element with selector: ${selector}`);
+              break;
+            }
+          }
+          if (courseElement) break;
+        }
+      }
+      
+      // Strategy 4: Look for navigation links or buttons related to courses
+      if (!courseElement) {
+        const buttons = document.querySelectorAll('button, a, [role="button"]');
+        for (const button of buttons) {
+          const text = (button.textContent || '').toLowerCase();
+          const ariaLabel = (button.getAttribute('aria-label') || '').toLowerCase();
+          const href = (button as HTMLAnchorElement).href || '';
+          
+          if (text.includes('course') || text.includes('browse') || text.includes('explore') ||
+              ariaLabel.includes('course') || href.includes('course')) {
+            courseElement = button as HTMLElement;
+            console.log('✅ Found course button/link');
+            break;
+          }
+        }
+      }
+      
+      if (courseElement) {
+        // Apply enhanced highlighting for course elements
+        highlightElement(courseElement);
+        
+        // Add extra visual emphasis for course cards
+        courseElement.style.transform = 'scale(1.02)';
+        courseElement.style.transition = 'all 0.3s ease';
+        
+        setTimeout(() => {
+          if (courseElement) {
+            courseElement.style.transform = '';
+          }
+        }, 2000);
+        
+        return {
+          found: true,
+          element: courseElement,
+          selector: getBestSelector(courseElement),
+          description: 'Perfect! I found the course browsing section for you. Click here to explore available courses!'
+        };
+      }
+      
+      // If no specific course element found, provide guidance
+      return {
+        found: false,
+        description: 'I can help you find courses! Look for a "Courses", "Browse", or "Explore" section on the page, or try asking me to "read this page" first so I can better understand what\'s available.'
+      };
+    }
+    
     // Extract action/intent from query
     let targetAction = '';
     let targetNoun = '';
@@ -538,10 +642,13 @@ export const findAndHighlightElement = (query: string): {
     else if (lowerQuery.includes('delete')) targetAction = 'delete';
     else if (lowerQuery.includes('save')) targetAction = 'save';
     else if (lowerQuery.includes('upload')) targetAction = 'upload';
+    else if (lowerQuery.includes('browse')) targetAction = 'browse';
+    else if (lowerQuery.includes('find')) targetAction = 'find';
+    else if (lowerQuery.includes('explore')) targetAction = 'explore';
     
     // Noun keywords
     if (lowerQuery.includes('module')) targetNoun = 'module';
-    else if (lowerQuery.includes('course')) targetNoun = 'course';
+    else if (lowerQuery.includes('course') || lowerQuery.includes('courses')) targetNoun = 'course';
     else if (lowerQuery.includes('assignment')) targetNoun = 'assignment';
     else if (lowerQuery.includes('task')) targetNoun = 'task';
     else if (lowerQuery.includes('file')) targetNoun = 'file';
@@ -586,6 +693,11 @@ export const findAndHighlightElement = (query: string): {
         if (allText.includes('create course') || allText.includes('new course') || allText.includes('add course')) score += 25;
       }
       
+      // Course browsing specific scoring
+      if ((targetAction === 'browse' || targetAction === 'find' || targetAction === 'explore') && targetNoun === 'course') {
+        if (allText.includes('browse') || allText.includes('explore') || allText.includes('view all') || allText.includes('see all')) score += 25;
+      }
+      
       // Generic action scoring
       if (targetAction && allText.includes(targetAction)) score += 5;
       if (allText.includes('add') || allText.includes('create') || allText.includes('new')) score += 3;
@@ -618,7 +730,7 @@ export const findAndHighlightElement = (query: string): {
     
     return {
       found: false,
-      description: `I couldn't find a specific button for "${targetAction} ${targetNoun}". You might need to look for a button with "Add", "Create", or "+" symbol.`
+      description: `I couldn't find a specific element for "${targetAction} ${targetNoun}". You might need to look for a button with "Add", "Create", or "+" symbol, or try asking me to "read this page" first.`
     };
     
   } catch (error) {

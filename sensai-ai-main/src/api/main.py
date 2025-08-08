@@ -22,6 +22,7 @@ from .routes import (
     ai,
     scorecard,
     voice,
+    intelligent_voice,
 )
 # from .routes.integrity import integrity_router
 from .routes.ai import (
@@ -130,6 +131,7 @@ app.include_router(scorecard.router, prefix="/scorecards", tags=["scorecards"])
 app.include_router(code.router, prefix="/code", tags=["code"])
 app.include_router(hva.router, prefix="/hva", tags=["hva"])
 app.include_router(voice.router, prefix="/voice", tags=["voice"])
+app.include_router(intelligent_voice.router, prefix="/intelligent-voice", tags=["intelligent-voice"])
 app.include_router(websocket_router, prefix="/ws", tags=["websockets"])
 # app.include_router(integrity_router,prefix="/integrity", tags=["integrity"])
 

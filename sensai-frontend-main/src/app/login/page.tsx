@@ -20,8 +20,68 @@ function LoginContent() {
         }
     }, [session, callbackUrl, router]);
 
+    // Add message listener for voice agent communication
+    useEffect(() => {
+        const handleMessage = (event: MessageEvent) => {
+            if (event.data.type === 'HIGHLIGHT_GOOGLE_BUTTON') {
+                console.log('🎯 Received highlight request for Google button');
+                const button = document.getElementById('google-signin-button');
+                if (button) {
+                    button.style.outline = '3px solid #00ff00';
+                    button.style.outlineOffset = '2px';
+                    button.style.boxShadow = '0 0 15px rgba(0, 255, 0, 0.6)';
+                    button.style.animation = 'pulse 1.5s infinite';
+                    
+                    // Add pulse animation if not exists
+                    if (!document.querySelector('#pulse-animation-style')) {
+                        const style = document.createElement('style');
+                        style.id = 'pulse-animation-style';
+                        style.textContent = `
+                            @keyframes pulse {
+                                0% { box-shadow: 0 0 15px rgba(0, 255, 0, 0.6); }
+                                50% { box-shadow: 0 0 25px rgba(0, 255, 0, 0.9); }
+                                100% { box-shadow: 0 0 15px rgba(0, 255, 0, 0.6); }
+                            }
+                        `;
+                        document.head.appendChild(style);
+                    }
+                    console.log('✅ Google button highlighted successfully');
+                } else {
+                    console.log('❌ Google button not found');
+                }
+            }
+        };
+
+        const handleKeyboard = (event: KeyboardEvent) => {
+            if (event.ctrlKey && event.key === 'h') {
+                event.preventDefault();
+                testHighlight();
+            }
+        };
+
+        window.addEventListener('message', handleMessage);
+        window.addEventListener('keydown', handleKeyboard);
+        
+        return () => {
+            window.removeEventListener('message', handleMessage);
+            window.removeEventListener('keydown', handleKeyboard);
+        };
+    }, []);
+
     const handleGoogleLogin = () => {
         signIn("google", { callbackUrl });
+    };
+
+    // Test function for manual highlighting
+    const testHighlight = () => {
+        const button = document.getElementById('google-signin-button');
+        if (button) {
+            button.style.outline = '3px solid #00ff00';
+            button.style.outlineOffset = '2px';
+            button.style.boxShadow = '0 0 15px rgba(0, 255, 0, 0.6)';
+            button.style.animation = 'pulse 1.5s infinite';
+            console.log('✅ Test highlight applied');
+        }
     };
 
     // Show loading state while checking session
@@ -74,6 +134,7 @@ function LoginContent() {
                     <div className="md:col-span-5">
                         <div className="mx-4 md:mx-0">
                             <button
+                                id="google-signin-button"
                                 onClick={handleGoogleLogin}
                                 className="flex items-center justify-center w-full py-3 px-4 bg-white border border-gray-300 rounded-full text-black hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer mx-4"
                             >
@@ -97,6 +158,19 @@ function LoginContent() {
                                 </svg>
                                 Sign in with Google
                             </button>
+
+                            {/* Test button for highlighting - can be removed later */}
+                            <button
+                                onClick={testHighlight}
+                                className="mt-4 w-full py-2 px-4 bg-gray-800 text-white rounded-lg text-sm hover:bg-gray-700 transition-colors"
+                            >
+                                Test Highlight (Ctrl+H)
+                            </button>
+
+                            {/* Keyboard shortcut for testing */}
+                            <div className="mt-2 text-center text-gray-400 text-xs">
+                                Press Ctrl+H to test highlight or say &quot;account&quot; with voice agent
+                            </div>
 
                             <div className="px-4 md:px-8 py-4">
                                 <p className="text-xs text-gray-500">
